@@ -36,7 +36,7 @@ prefix      : woju/qubes-
 [builder-rpm]
 id          : builder-rpm
 type        : builder
-description : RPM-based Linux Builder - Contains all Makefiles to build RPM based templates (e.g. Fedora and CentOS)
+description : RPM-based Linux Builder - Contains all Makefiles to build RPM based templates (e.g. Fedora, CentOS and OpenSUSE)
 require     : None
 require_in  : fc dom0
 
