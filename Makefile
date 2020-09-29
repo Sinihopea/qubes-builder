@@ -189,6 +189,8 @@ help:
 	@echo "make COMPONENT        -- build both dom0 and VM part of COMPONENT"
 	@echo "make COMPONENT-dom0   -- build only dom0 part of COMPONENT"
 	@echo "make COMPONENT-vm     -- build only VM part of COMPONENT"
+	@echo "make COMPONENT-vm-shell   -- start a shell in the VM build environment chroot of COMPONENT"
+	@echo "make COMPONENT-dom0-shell -- start a shell in the DOM0 build environment chroot of COMPONENT"
 	@echo "COMPONENT can be one of:"
 	@echo "  $(COMPONENTS)"
 	@echo ""
@@ -242,6 +244,22 @@ ifneq ($(DIST_DOM0),)
 		$(MAKE) -f Makefile.generic DIST=$(DIST_DOM0) PACKAGE_SET=dom0 COMPONENT=$* ENV_COMPONENT=$(ENV_$(subst -,_,$*)) all || exit 1; \
 	elif [ -n "`$(MAKE) -n -s -C $(SRC_DIR)/$* rpms-dom0 2> /dev/null`" ]; then \
 	    MAKE_TARGET="rpms-dom0" ./scripts/build $(DIST_DOM0) $* || exit 1; \
+	fi
+endif
+
+$(COMPONENTS_NO_TPL_BUILDER:%=%-vm-shell) : %-vm-shell : check-depend
+	@$(call check_branch,$*)
+	@if [ -r $(SRC_DIR)/$*/Makefile.builder ]; then \
+		for DIST in $(DISTS_VM_NO_FLAVOR); do \
+			$(MAKE) --no-print-directory DIST=$$DIST PACKAGE_SET=vm COMPONENT=$* ENV_COMPONENT=$(ENV_$(subst -,_,$*)) -f Makefile.generic start-shell || exit 1; \
+		done; \
+	fi
+
+$(COMPONENTS_NO_TPL_BUILDER:%=%-dom0-shell) : %-dom0-shell : check-depend
+	@$(call check_branch,$*)
+ifneq ($(DIST_DOM0),)
+	@if [ -r $(SRC_DIR)/$*/Makefile.builder ]; then \
+		$(MAKE) -f Makefile.generic DIST=$(DIST_DOM0) PACKAGE_SET=dom0 COMPONENT=$* ENV_COMPONENT=$(ENV_$(subst -,_,$*)) start-shell || exit 1; \
 	fi
 endif
 
