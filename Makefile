@@ -303,7 +303,8 @@ sign.%:
 		export TEMPLATE_NAME=$$(MAKEFLAGS= make -s \
 				-C $(SRC_DIR)/linux-template-builder \
 				DIST=$(DIST) \
-				template-name)
+				template-name) \
+		export USE_DIST_BUILD_TOOLS=0
 	fi
 	if [ -r $(SRC_DIR)/$(COMPONENT)/Makefile.builder ]; then \
 		$(MAKE) --no-print-directory -f Makefile.generic \
