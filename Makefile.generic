@@ -28,7 +28,12 @@ DIST_ORIG := $(DIST)
 DIST_ORIG_ALIAS := $(firstword $(subst :, ,\
 			$(filter %:$(DIST_ORIG),\
 				$(TEMPLATE_ALIAS) $(DIST_ORIG):$(DIST_ORIG))))
+ifneq (,$(DIST_DOM0))
 override DIST := $(DIST_DOM0)
+else
+# No DIST_DOM0 set so we'll default to common one
+override DIST := fc32
+endif
 endif
 
 LOADING_PLUGINS = 1
