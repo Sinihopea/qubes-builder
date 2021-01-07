@@ -8,7 +8,11 @@ cd "$(dirname $0)/.."
 # shellcheck source=scripts/common
 . scripts/common
 
-trap 'show_failed_log travis-install.log' 1
+# we don't show most of install log, echo some text to prevent Travis-CI timeout
+keep_alive &
+keep_alive_pid=$!
+
+trap 'exit_travis travis-install.log ${keep_alive_pid}' 0 1
 
 packages="$(find qubes-packages-mirror-repo/ -type f -regex '.*\(deb\|rpm\|zst\)$' 2>/dev/null)"
 if [ -z "$packages" ]; then
@@ -16,11 +20,18 @@ if [ -z "$packages" ]; then
     exit
 fi
 
-prepare_chroot
+# we handle case where we run reprotest stage separately with build artifacts (e.g. GitlabCI).
+if [ "$1" = prepare-chroot ]; then
+    prepare_chroot
+fi
 
 chroot_dir="$(ls -d chroot-* || :)"
 if [ -z "$chroot_dir" ]; then
     exit
+fi
+
+if [ -n "$DIST_DOM0" ] && [ -n "${TRAVIS_INSTALL_EXCLUDE_DOM0+test}" ]; then
+    TRAVIS_INSTALL_EXCLUDE=${TRAVIS_INSTALL_EXCLUDE_DOM0}
 fi
 
 YUM="$(get_yum "$chroot_dir")"
@@ -32,7 +43,7 @@ sudo rm -f "$chroot_dir/etc/fstab"
 
 if [ -n "$YUM" ]; then
     # install all built RPMs
-    PKGS="$(sudo chroot "$chroot_dir" bash -c -l 'find /tmp/qubes-packages-mirror-repo/rpm/ -type f -name "*.rpm"')"
+    PKGS="$(sudo chroot "$chroot_dir" bash -c -l 'find /tmp/qubes-packages-mirror-repo/rpm/ -type f -name "*.rpm" ! -name "*.src.rpm"')"
     for excluded in $TRAVIS_INSTALL_EXCLUDE
     do
         PKGS="$(echo "$PKGS" | sed "/$excluded-[0-9]/d")"

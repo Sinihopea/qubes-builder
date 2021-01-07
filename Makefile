@@ -12,7 +12,7 @@ BUILDERCONF ?= builder.conf
 
 # Set defaults
 BRANCH ?= master
-GIT_BASEURL ?= git://github.com
+GIT_BASEURL ?= https://github.com
 GIT_SUFFIX ?= .git
 DIST_DOM0 ?= fc20
 DISTS_VM ?= fc20
@@ -212,11 +212,11 @@ get-sources-tgt = $(get-sources-sort:%=%.get-sources)
 get-sources-extra-tgt = $(get-sources-sort:%=%.get-sources-extra)
 .PHONY: get-sources builder.get-sources $(get-sources-tgt) $(get-sources-extra-tgt)
 $(get-sources-tgt): build-info
-	@REPO=$(@:%.get-sources=$(SRC_DIR)/%) MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources
+	@REPO=$(@:%.get-sources=$(SRC_DIR)/%) NO_COLOR=$(NO_COLOR) MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources
 $(get-sources-extra-tgt):
 	@REPO=$(@:%.get-sources-extra=$(SRC_DIR)/%) MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources-extra
 builder.get-sources: build-info
-	@REPO=. MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources
+	@REPO=. NO_COLOR=$(NO_COLOR) MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources
 get-sources: get-sources-git get-sources-extra
 get-sources-git: $(BUILDERCONF) $(filter builder.get-sources, $(COMPONENTS:%=%.get-sources)) $(get-sources-tgt)
 get-sources-extra: $(get-sources-extra-tgt)
@@ -234,12 +234,20 @@ check-depend: check.$(PKG_MANAGER) check-depend.$(PKG_MANAGER)
 
 prepare-chroot-dom0:
 ifneq ($(DIST_DOM0),)
-	$(MAKE) --no-print-directory DIST=$(DIST_DOM0) PACKAGE_SET=dom0 -f Makefile.generic prepare-chroot || exit 1;
+	@if [ "$(VERBOSE)" -eq 0 ]; then \
+		$(MAKE) --no-print-directory DIST=$(DIST_DOM0) PACKAGE_SET=dom0 -f Makefile.generic prepare-chroot > build-logs/chroot-dom0-$$DIST.log 2>&1 || exit 1;
+	else \
+		$(MAKE) --no-print-directory DIST=$(DIST_DOM0) PACKAGE_SET=dom0 -f Makefile.generic prepare-chroot || exit 1;
+	fi
 endif
 
 prepare-chroot-vm:
 	@for DIST in $(DISTS_VM_NO_FLAVOR); do \
-		$(MAKE) --no-print-directory DIST=$$DIST PACKAGE_SET=vm -f Makefile.generic prepare-chroot || exit 1; \
+		if [ "$(VERBOSE)" -eq 0 ]; then \
+			$(MAKE) --no-print-directory DIST=$$DIST PACKAGE_SET=vm -f Makefile.generic prepare-chroot > build-logs/chroot-vm-$$DIST.log 2>&1 || exit 1;
+		else \
+			$(MAKE) --no-print-directory DIST=$$DIST PACKAGE_SET=vm -f Makefile.generic prepare-chroot || exit 1; \
+		fi
 	done
 
 $(COMPONENTS_NO_TPL_BUILDER): % : %-dom0 %-vm
@@ -711,7 +719,7 @@ push:
 		popd > /dev/null; \
 	done; \
 	echo "All stuff pushed succesfully."
-	
+
 prepare-merge-fetch:
 	@set -a; \
 	SCRIPT_DIR=$(BUILDER_DIR)/scripts; \
@@ -722,10 +730,11 @@ prepare-merge-fetch:
 	components_var="REMOTE_COMPONENTS_$${GIT_REMOTE//-/_}"; \
 	[ -n "$${!components_var}" ] && REPOS="`echo $${!components_var} | sed 's@^\| @ $(SRC_DIR)/@g'`"; \
 	for REPO in $$REPOS; do \
-		$$SCRIPT_DIR/get-sources || exit 1; \
+		"$$SCRIPT_DIR/get-sources" || exit 1; \
 	done
 
 prepare-merge: prepare-merge-fetch show-unmerged
+merge: prepare-merge-fetch do-merge
 
 show-unmerged:
 	@REPOS="$(GIT_REPOS)"; \
@@ -752,9 +761,10 @@ do-merge:
 	components_var="REMOTE_COMPONENTS_$${GIT_REMOTE//-/_}"; \
 	[ -n "$${!components_var}" ] && REPOS="`echo $${!components_var} | sed 's@^\| @ $(SRC_DIR)/@g'`"; \
 	for REPO in $$REPOS; do \
-		git -C $$REPO rev-parse -q --verify FETCH_HEAD >/dev/null || continue; \
+		rev=$$(git -C $$REPO rev-parse -q --verify FETCH_HEAD) || continue; \
+		./scripts/verify-git-tag "$$REPO" "$$rev" || exit 1; \
 		echo "Merging FETCH_HEAD into $$REPO"; \
-		git -C $$REPO merge --ff $(GIT_MERGE_OPTS) --no-edit FETCH_HEAD || exit 1; \
+		git -c merge.verifySignatures=false -C $$REPO merge --ff $(GIT_MERGE_OPTS) --no-edit "$$rev" || exit 1; \
 	done
 
 do-merge-versions-only:
@@ -762,20 +772,22 @@ do-merge-versions-only:
 	components_var="REMOTE_COMPONENTS_$${GIT_REMOTE//-/_}"; \
 	[ -n "$${!components_var}" ] && REPOS="`echo $${!components_var} | sed 's@^\| @ $(SRC_DIR)/@g'`"; \
 	for REPO in $$REPOS; do \
-		git -C $$REPO rev-parse -q --verify FETCH_HEAD >/dev/null || continue; \
-		git -C $$REPO tag --points-at FETCH_HEAD | grep -q '^v' || continue; \
+		rev=$$(git -C $$REPO rev-parse -q --verify FETCH_HEAD) || continue; \
+		git -C $$REPO tag --points-at "$$rev" | grep -q '^v' || continue; \
+		./scripts/verify-git-tag "$$REPO" "$$rev" || exit 1; \
 		echo "Merging FETCH_HEAD into $$REPO"; \
-		git -C $$REPO merge --ff $(GIT_MERGE_OPTS) --no-edit FETCH_HEAD || exit 1; \
+		git -c merge.verifySignatures=false -C $$REPO merge --ff $(GIT_MERGE_OPTS) --no-edit "$$rev" || exit 1; \
 	done
 
 add-remote:
 	@if [ "x$${GIT_REMOTE//-/_}" != "x" ]; then \
 		for REPO in $(GIT_REPOS); do \
-			pushd $$REPO > /dev/null; \
+			pushd $$REPO > /dev/null || exit 1; \
 				COMPONENT=$$(basename $$REPO | sed 's/\./builder/g'); \
-				git remote add $${GIT_REMOTE//-/_} $(GIT_BASEURL)/$(GIT_PREFIX)$$COMPONENT$(GIT_SUFIX); \
-				git fetch $${GIT_REMOTE//-/_}; \
-			popd > /dev/null; \
+				git remote add -- "$${GIT_REMOTE//-/_}" "$$GIT_BASEURL/$$GIT_PREFIX$$COMPONENT$$GIT_SUFFIX" 2>/dev/null || \
+				git remote set-url -- "$${GIT_REMOTE//-/_}" "$$GIT_BASEURL/$$GIT_PREFIX$$COMPONENT$$GIT_SUFFIX"; \
+				if [ "$$AUTO_FETCH" = 1 ]; then git fetch -- "$${GIT_REMOTE//-/_}"; fi; \
+			popd > /dev/null || exit 1; \
 		done; \
 	fi; \
 
@@ -842,11 +854,15 @@ internal-update-repo-%: UPDATE_REPO_SUBDIR = $(TARGET_REPO)/$(PACKAGE_SET)/$(DIS
 internal-update-repo-%: BUILD_LOG_URL = $(word 2,$(subst =, ,$(filter $(COMPONENT)-$(PACKAGE_SET)-$(DIST)=%,$(BUILD_LOGS_URL))))
 internal-update-repo-%: $(REPO)
 
+MAKEREPO ?= 1
+UPLOAD ?= 1
+
 # for templates skip $(PACKAGE_SET)/$(DIST)
 internal-update-repo-templates-%: UPDATE_REPO_SUBDIR = $(TARGET_REPO)
 # and the actual code
 # this is executed for every (DIST,PACKAGE_SET,COMPONENT) combination
 internal-update-repo-%:
+ifeq ($(MAKEREPO),1)
 	@repo_base_var="LINUX_REPO_$(DIST)_BASEDIR"; \
 	if [ "$(COMPONENT)" = linux-template-builder ]; then \
 		# templates belongs to dom0 repository, even though PACKAGE_SET=vm
@@ -898,9 +914,15 @@ internal-update-repo-%:
 		echo -n "Updating $(REPO)... skipping."; \
 	fi; \
 	echo
+else ifeq ($(MAKEREPO),0)
+	@true
+else
+	$(error bad value for $$(MAKEREPO))
+endif
 
 # this is executed only once for all update-repo-* target
 post-update-repo-%:
+ifeq ($(UPLOAD),1)
 	@for dist in $(DIST_DOM0) $(DISTS_VM_NO_FLAVOR); do \
 		repo_base_var="LINUX_REPO_$${dist}_BASEDIR"; \
 		if [ -n "$${!repo_base_var}" ]; then \
@@ -922,6 +944,11 @@ post-update-repo-%:
 		[ -x "$$repo/../update_repo-$*.sh" ] || continue; \
 		(cd $$repo/.. && ./update_repo-$*.sh r$(RELEASE) $$pkgset_dist); \
 	done
+else ifeq ($(UPLOAD),0)
+	@true
+else
+	$(error bad value for $$(UPLOAD))
+endif
 
 template-name:
 	@for DIST in $(DISTS_VM); do \
