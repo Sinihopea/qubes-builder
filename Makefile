@@ -12,7 +12,7 @@ BUILDERCONF ?= builder.conf
 
 # Set defaults
 BRANCH ?= master
-GIT_BASEURL ?= git://github.com
+GIT_BASEURL ?= https://github.com
 GIT_SUFFIX ?= .git
 DIST_DOM0 ?= fc20
 DISTS_VM ?= fc20
@@ -148,47 +148,58 @@ endif
 .EXPORT_ALL_VARIABLES:
 .ONESHELL:
 help:
-	@echo "make qubes            -- download and build all components"
-	@echo "make qubes-dom0       -- download and build all dom0 components"
-	@echo "make qubes-vm         -- download and build all VM components"
-	@echo "make template-in-dispvm -- start new DispVM and build the whole template there"
-	@echo "make get-sources      -- download/update all sources (including source tarballs)"
-	@echo "make get-sources-git  -- download/update all sources"
-	@echo "make get-sources-extra -- download source tarballs required for some components"
-	@echo "make iso              -- update installer repos, make iso"
-	@echo "make qubes-os-iso     -- same as \"make get-sources qubes sign-all iso\""
-	@echo "make build-info       -- show current build options"
-	@echo "make build-id         -- show current sources (output suitable for builder.conf to repeat the same build)"
-	@echo "make about            -- show all included Makefiles"
-	@echo "make sign-all         -- sign all packages"
-	@echo "make sign-vm          -- sign all VM packages"
-	@echo "make sign-dom0        -- sign all Dom0 packages"
-	@echo "make clean-all        -- remove any downloaded sources and built packages"
-	@echo "make clean-rpms       -- remove any built packages"
-	@echo "make clean-chroot     -- remove all chroot directories"
-	@echo "make remount          -- remount current filesystem with dev option"
-	@echo "make mostlyclean      -- remove built packages and built templates"
-	@echo "make distclean        -- remove all files and directories built or added"
-	@echo "make check            -- check for any uncommited changes and unsigned tags"
-	@echo "make check-depend     -- check for build dependencies ($(DEPENDENCIES))"
-	@echo "make install-deps     -- install missing build dependencies ($(DEPENDENCIES))"
-	@echo "make diff             -- show diffs for any uncommitted changes"
-	@echo "make show REF=git_ref -- show git object git_ref regardless of what repo it's in"
-	@echo "make grep RE=regexp   -- grep for regexp in all components"
-	@echo "make push             -- do git push for all repos, including tags"
-	@echo "make show-vtags       -- list components version tags (only when HEAD have such) and branches"
-	@echo "make check-release-status -- check whether packages are included in updates repository"
-	@echo "make show-authors     -- list authors of Qubes code based on commit log of each component"
-	@echo "make prepare-merge    -- fetch the sources from git, but only show new commits instead of merging"
-	@echo "make show-unmerged    -- list fetched but unmerged commits (see make prepare-merge)"
-	@echo "make do-merge         -- merge fetched commits"
-	@echo "make switch-branch    -- checkout branch listed in builder.conf for each component"
-	@echo "make update-repo-*    -- copy binary packages to the updates repository (yum/apt/...)"
-	@echo "make get-var GET_VAR=... -- print content of requested configuration variable"
-	@echo "make add-remote       -- add remote git repository"
-	@echo "make COMPONENT        -- build both dom0 and VM part of COMPONENT"
-	@echo "make COMPONENT-dom0   -- build only dom0 part of COMPONENT"
-	@echo "make COMPONENT-vm     -- build only VM part of COMPONENT"
+	@echo "Qubes builder available make targets:"
+	@echo "-> Build targets:"
+	@echo "  qubes                -- download and build all components"
+	@echo "  qubes-dom0           -- download and build all dom0 components"
+	@echo "  qubes-vm             -- download and build all VM components"
+	@echo "  qubes-os-iso         -- same as \"make get-sources qubes sign-all iso\""
+	@echo "  COMPONENT            -- build both dom0 and VM part of COMPONENT"
+	@echo "  COMPONENT-dom0       -- build only dom0 part of COMPONENT"
+	@echo "  COMPONENT-dom0-shell -- start a shell in the DOM0 build environment chroot of COMPONENT"
+	@echo "  COMPONENT-vm         -- build only VM part of COMPONENT"
+	@echo "  COMPONENT-vm-shell   -- start a shell in the VM build environment chroot of COMPONENT"
+	@echo "  iso                  -- update installer repos, make iso"
+	@echo "  clean-all            -- remove any downloaded sources and built packages"
+	@echo "  clean-chroot         -- remove all chroot directories"
+	@echo "  clean-rpms           -- remove any built packages"
+	@echo "  distclean            -- remove all files and directories built or added"
+	@echo "  get-sources          -- download/update all sources (including source tarballs)"
+	@echo "  get-sources-extra    -- download source tarballs required for some components"
+	@echo "  get-sources-git      -- download/update all sources"
+	@echo "  get-var GET_VAR=...  -- print content of requested configuration variable"
+	@echo "  check-depend         -- check for build dependencies"
+	@echo "                          ($(DEPENDENCIES))"
+	@echo "  install-deps         -- install missing build dependencies"
+	@echo "                          ($(DEPENDENCIES))"
+	@echo "  mostlyclean          -- remove built packages and built templates"
+	@echo "  prepare-chroot-dom0  -- prepare chroot directory for dom0 dist"
+	@echo "  prepare-chroot-vm    -- prepare chroot directory for vm dists"
+	@echo "  remount              -- remount current filesystem with dev option"
+	@echo "  sign-all             -- sign all packages"
+	@echo "  sign-dom0            -- sign all Dom0 packages"
+	@echo "  sign-vm              -- sign all VM packages"
+	@echo "  template-in-dispvm   -- start new DispVM and build the whole template there"
+	@echo ""
+	@echo "-> Source/release management targets:"
+	@echo "  about                -- show all included Makefiles"
+	@echo "  add-remote           -- add remote git repository"
+	@echo "  build-id             -- show current sources (output suitable for builder.conf to repeat the same build)"
+	@echo "  build-info           -- show current build options"
+	@echo "  check                -- check for any uncommited changes and unsigned tags"
+	@echo "  check-release-status -- check whether packages are included in updates repository"
+	@echo "  diff                 -- show diffs for any uncommitted changes"
+	@echo "  do-merge             -- merge fetched commits"
+	@echo "  grep RE=regexp       -- grep for regexp in all components"
+	@echo "  prepare-merge        -- fetch the sources from git, but only show new commits instead of merging"
+	@echo "  push                 -- do git push for all repos, including tags"
+	@echo "  show REF=git_ref     -- show git object git_ref regardless of what repo it's in"
+	@echo "  show-authors         -- list authors of Qubes code based on commit log of each component"
+	@echo "  show-unmerged        -- list fetched but unmerged commits (see make prepare-merge)"
+	@echo "  show-vtags           -- list components version tags (only when HEAD have such) and branches"
+	@echo "  switch-branch        -- checkout branch listed in builder.conf for each component"
+	@echo "  update-repo-*        -- copy binary packages to the updates repository (yum/apt/...)"
+	@echo ""
 	@echo "COMPONENT can be one of:"
 	@echo "  $(COMPONENTS)"
 	@echo ""
@@ -201,11 +212,11 @@ get-sources-tgt = $(get-sources-sort:%=%.get-sources)
 get-sources-extra-tgt = $(get-sources-sort:%=%.get-sources-extra)
 .PHONY: get-sources builder.get-sources $(get-sources-tgt) $(get-sources-extra-tgt)
 $(get-sources-tgt): build-info
-	@REPO=$(@:%.get-sources=$(SRC_DIR)/%) MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources
+	@REPO=$(@:%.get-sources=$(SRC_DIR)/%) NO_COLOR=$(NO_COLOR) MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources
 $(get-sources-extra-tgt):
 	@REPO=$(@:%.get-sources-extra=$(SRC_DIR)/%) MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources-extra
 builder.get-sources: build-info
-	@REPO=. MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources
+	@REPO=. NO_COLOR=$(NO_COLOR) MAKE="$(MAKE)" $(BUILDER_DIR)/scripts/get-sources
 get-sources: get-sources-git get-sources-extra
 get-sources-git: $(BUILDERCONF) $(filter builder.get-sources, $(COMPONENTS:%=%.get-sources)) $(get-sources-tgt)
 get-sources-extra: $(get-sources-extra-tgt)
@@ -221,6 +232,24 @@ check-depend.dpkg:
 		{ echo "ERROR: call 'make install-deps' to install missing dependencies"; exit 1; }
 check-depend: check.$(PKG_MANAGER) check-depend.$(PKG_MANAGER)
 
+prepare-chroot-dom0:
+ifneq ($(DIST_DOM0),)
+	@if [ "$(VERBOSE)" -eq 0 ]; then \
+		$(MAKE) --no-print-directory DIST=$(DIST_DOM0) PACKAGE_SET=dom0 -f Makefile.generic prepare-chroot > build-logs/chroot-dom0-$$DIST.log 2>&1 || exit 1;
+	else \
+		$(MAKE) --no-print-directory DIST=$(DIST_DOM0) PACKAGE_SET=dom0 -f Makefile.generic prepare-chroot || exit 1;
+	fi
+endif
+
+prepare-chroot-vm:
+	@for DIST in $(DISTS_VM_NO_FLAVOR); do \
+		if [ "$(VERBOSE)" -eq 0 ]; then \
+			$(MAKE) --no-print-directory DIST=$$DIST PACKAGE_SET=vm -f Makefile.generic prepare-chroot > build-logs/chroot-vm-$$DIST.log 2>&1 || exit 1;
+		else \
+			$(MAKE) --no-print-directory DIST=$$DIST PACKAGE_SET=vm -f Makefile.generic prepare-chroot || exit 1; \
+		fi
+	done
+
 $(COMPONENTS_NO_TPL_BUILDER): % : %-dom0 %-vm
 
 $(COMPONENTS_NO_TPL_BUILDER:%=%-vm) : %-vm : check-depend
@@ -229,10 +258,6 @@ $(COMPONENTS_NO_TPL_BUILDER:%=%-vm) : %-vm : check-depend
 		for DIST in $(DISTS_VM_NO_FLAVOR); do \
 			$(MAKE) --no-print-directory DIST=$$DIST PACKAGE_SET=vm COMPONENT=$* ENV_COMPONENT=$(ENV_$(subst -,_,$*)) -f Makefile.generic all || exit 1; \
 		done; \
-	elif [ -n "`$(MAKE) -n -s -C $(SRC_DIR)/$* rpms-vm 2> /dev/null`" ]; then \
-	    for DIST in $(DISTS_VM_NO_FLAVOR); do \
-	        MAKE_TARGET="rpms-vm" ./scripts/build $$DIST $* || exit 1; \
-	    done; \
 	fi
 
 $(COMPONENTS_NO_TPL_BUILDER:%=%-dom0) : %-dom0 : check-depend
@@ -240,8 +265,22 @@ $(COMPONENTS_NO_TPL_BUILDER:%=%-dom0) : %-dom0 : check-depend
 ifneq ($(DIST_DOM0),)
 	@if [ -r $(SRC_DIR)/$*/Makefile.builder ]; then \
 		$(MAKE) -f Makefile.generic DIST=$(DIST_DOM0) PACKAGE_SET=dom0 COMPONENT=$* ENV_COMPONENT=$(ENV_$(subst -,_,$*)) all || exit 1; \
-	elif [ -n "`$(MAKE) -n -s -C $(SRC_DIR)/$* rpms-dom0 2> /dev/null`" ]; then \
-	    MAKE_TARGET="rpms-dom0" ./scripts/build $(DIST_DOM0) $* || exit 1; \
+	fi
+endif
+
+$(COMPONENTS_NO_TPL_BUILDER:%=%-vm-shell) : %-vm-shell : check-depend
+	@$(call check_branch,$*)
+	@if [ -r $(SRC_DIR)/$*/Makefile.builder ]; then \
+		for DIST in $(DISTS_VM_NO_FLAVOR); do \
+			$(MAKE) --no-print-directory DIST=$$DIST PACKAGE_SET=vm COMPONENT=$* ENV_COMPONENT=$(ENV_$(subst -,_,$*)) -f Makefile.generic start-shell || exit 1; \
+		done; \
+	fi
+
+$(COMPONENTS_NO_TPL_BUILDER:%=%-dom0-shell) : %-dom0-shell : check-depend
+	@$(call check_branch,$*)
+ifneq ($(DIST_DOM0),)
+	@if [ -r $(SRC_DIR)/$*/Makefile.builder ]; then \
+		$(MAKE) -f Makefile.generic DIST=$(DIST_DOM0) PACKAGE_SET=dom0 COMPONENT=$* ENV_COMPONENT=$(ENV_$(subst -,_,$*)) start-shell || exit 1; \
 	fi
 endif
 
@@ -272,7 +311,8 @@ sign.%:
 		export TEMPLATE_NAME=$$(MAKEFLAGS= make -s \
 				-C $(SRC_DIR)/linux-template-builder \
 				DIST=$(DIST) \
-				template-name)
+				template-name) \
+		export USE_DIST_BUILD_TOOLS=0
 	fi
 	if [ -r $(SRC_DIR)/$(COMPONENT)/Makefile.builder ]; then \
 		$(MAKE) --no-print-directory -f Makefile.generic \
@@ -679,7 +719,7 @@ push:
 		popd > /dev/null; \
 	done; \
 	echo "All stuff pushed succesfully."
-	
+
 prepare-merge-fetch:
 	@set -a; \
 	SCRIPT_DIR=$(BUILDER_DIR)/scripts; \
@@ -690,10 +730,11 @@ prepare-merge-fetch:
 	components_var="REMOTE_COMPONENTS_$${GIT_REMOTE//-/_}"; \
 	[ -n "$${!components_var}" ] && REPOS="`echo $${!components_var} | sed 's@^\| @ $(SRC_DIR)/@g'`"; \
 	for REPO in $$REPOS; do \
-		$$SCRIPT_DIR/get-sources || exit 1; \
+		"$$SCRIPT_DIR/get-sources" || exit 1; \
 	done
 
 prepare-merge: prepare-merge-fetch show-unmerged
+merge: prepare-merge-fetch do-merge
 
 show-unmerged:
 	@REPOS="$(GIT_REPOS)"; \
@@ -720,9 +761,10 @@ do-merge:
 	components_var="REMOTE_COMPONENTS_$${GIT_REMOTE//-/_}"; \
 	[ -n "$${!components_var}" ] && REPOS="`echo $${!components_var} | sed 's@^\| @ $(SRC_DIR)/@g'`"; \
 	for REPO in $$REPOS; do \
-		git -C $$REPO rev-parse -q --verify FETCH_HEAD >/dev/null || continue; \
+		rev=$$(git -C $$REPO rev-parse -q --verify FETCH_HEAD) || continue; \
+		./scripts/verify-git-tag "$$REPO" "$$rev" || exit 1; \
 		echo "Merging FETCH_HEAD into $$REPO"; \
-		git -C $$REPO merge --ff $(GIT_MERGE_OPTS) --no-edit FETCH_HEAD || exit 1; \
+		git -c merge.verifySignatures=false -C $$REPO merge --ff $(GIT_MERGE_OPTS) --no-edit "$$rev" || exit 1; \
 	done
 
 do-merge-versions-only:
@@ -730,20 +772,22 @@ do-merge-versions-only:
 	components_var="REMOTE_COMPONENTS_$${GIT_REMOTE//-/_}"; \
 	[ -n "$${!components_var}" ] && REPOS="`echo $${!components_var} | sed 's@^\| @ $(SRC_DIR)/@g'`"; \
 	for REPO in $$REPOS; do \
-		git -C $$REPO rev-parse -q --verify FETCH_HEAD >/dev/null || continue; \
-		git -C $$REPO tag --points-at FETCH_HEAD | grep -q '^v' || continue; \
+		rev=$$(git -C $$REPO rev-parse -q --verify FETCH_HEAD) || continue; \
+		git -C $$REPO tag --points-at "$$rev" | grep -q '^v' || continue; \
+		./scripts/verify-git-tag "$$REPO" "$$rev" || exit 1; \
 		echo "Merging FETCH_HEAD into $$REPO"; \
-		git -C $$REPO merge --ff $(GIT_MERGE_OPTS) --no-edit FETCH_HEAD || exit 1; \
+		git -c merge.verifySignatures=false -C $$REPO merge --ff $(GIT_MERGE_OPTS) --no-edit "$$rev" || exit 1; \
 	done
 
 add-remote:
 	@if [ "x$${GIT_REMOTE//-/_}" != "x" ]; then \
 		for REPO in $(GIT_REPOS); do \
-			pushd $$REPO > /dev/null; \
+			pushd $$REPO > /dev/null || exit 1; \
 				COMPONENT=$$(basename $$REPO | sed 's/\./builder/g'); \
-				git remote add $${GIT_REMOTE//-/_} $(GIT_BASEURL)/$(GIT_PREFIX)$$COMPONENT$(GIT_SUFIX); \
-				git fetch $${GIT_REMOTE//-/_}; \
-			popd > /dev/null; \
+				git remote add -- "$${GIT_REMOTE//-/_}" "$$GIT_BASEURL/$$GIT_PREFIX$$COMPONENT$$GIT_SUFFIX" 2>/dev/null || \
+				git remote set-url -- "$${GIT_REMOTE//-/_}" "$$GIT_BASEURL/$$GIT_PREFIX$$COMPONENT$$GIT_SUFFIX"; \
+				if [ "$$AUTO_FETCH" = 1 ]; then git fetch -- "$${GIT_REMOTE//-/_}"; fi; \
+			popd > /dev/null || exit 1; \
 		done; \
 	fi; \
 
@@ -810,11 +854,15 @@ internal-update-repo-%: UPDATE_REPO_SUBDIR = $(TARGET_REPO)/$(PACKAGE_SET)/$(DIS
 internal-update-repo-%: BUILD_LOG_URL = $(word 2,$(subst =, ,$(filter $(COMPONENT)-$(PACKAGE_SET)-$(DIST)=%,$(BUILD_LOGS_URL))))
 internal-update-repo-%: $(REPO)
 
+MAKEREPO ?= 1
+UPLOAD ?= 1
+
 # for templates skip $(PACKAGE_SET)/$(DIST)
 internal-update-repo-templates-%: UPDATE_REPO_SUBDIR = $(TARGET_REPO)
 # and the actual code
 # this is executed for every (DIST,PACKAGE_SET,COMPONENT) combination
 internal-update-repo-%:
+ifeq ($(MAKEREPO),1)
 	@repo_base_var="LINUX_REPO_$(DIST)_BASEDIR"; \
 	if [ "$(COMPONENT)" = linux-template-builder ]; then \
 		# templates belongs to dom0 repository, even though PACKAGE_SET=vm
@@ -866,9 +914,15 @@ internal-update-repo-%:
 		echo -n "Updating $(REPO)... skipping."; \
 	fi; \
 	echo
+else ifeq ($(MAKEREPO),0)
+	@true
+else
+	$(error bad value for $$(MAKEREPO))
+endif
 
 # this is executed only once for all update-repo-* target
 post-update-repo-%:
+ifeq ($(UPLOAD),1)
 	@for dist in $(DIST_DOM0) $(DISTS_VM_NO_FLAVOR); do \
 		repo_base_var="LINUX_REPO_$${dist}_BASEDIR"; \
 		if [ -n "$${!repo_base_var}" ]; then \
@@ -890,6 +944,11 @@ post-update-repo-%:
 		[ -x "$$repo/../update_repo-$*.sh" ] || continue; \
 		(cd $$repo/.. && ./update_repo-$*.sh r$(RELEASE) $$pkgset_dist); \
 	done
+else ifeq ($(UPLOAD),0)
+	@true
+else
+	$(error bad value for $$(UPLOAD))
+endif
 
 template-name:
 	@for DIST in $(DISTS_VM); do \
