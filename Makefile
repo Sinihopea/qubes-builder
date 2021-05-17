@@ -18,6 +18,10 @@ DIST_DOM0 ?= fc20
 DISTS_VM ?= fc20
 VERBOSE ?= 0
 
+http_proxy := $(REPO_PROXY)
+https_proxy := $(REPO_PROXY)
+ALL_PROXY := $(REPO_PROXY)
+
 # Beware of build order
 COMPONENTS ?= builder
 
@@ -28,6 +32,7 @@ RELEASE ?= $(patsubst r%,%,$(lastword $(subst /, ,$(LINUX_REPO_BASEDIR))))
 INSTALLER_COMPONENT ?= installer-qubes-os
 BACKEND_VMM ?= xen
 KEYRING_DIR_GIT ?= $(BUILDER_DIR)/keyrings/git
+FETCH_CMD := $(if $(REPO_PROXY),http_proxy='$(subst ','\'',$(REPO_PROXY))' https_proxy='$(subst ','\'',$(REPO_PROXY))' )curl --proto '=https' --proto-redir '=https' --tlsv1.2 --http1.1 -sSfL -o
 
 TESTING_DAYS = 7
 
@@ -221,16 +226,16 @@ get-sources: get-sources-git get-sources-extra
 get-sources-git: $(BUILDERCONF) $(filter builder.get-sources, $(COMPONENTS:%=%.get-sources)) $(get-sources-tgt)
 get-sources-extra: $(get-sources-extra-tgt)
 
-.PHONY: check.rpm check.dpkg check-depend check-depend.rpm check-depend.dpkg
-check.rpm: $(if $(shell which rpm 2>/dev/null), /bin/true, please.install.rpm.and.try.again);
-check.dpkg: $(if $(shell which dpkg 2>/dev/null), /bin/true, please.install.dpkg.and.try.again);
+.PHONY: check-depend check-depend.rpm check-depend.dpkg
 check-depend.rpm:
-	@echo "Currently installed dependencies:" && rpm -q --whatprovides $(DEPENDENCIES) || \
+	$(if $(shell rpm --version 2>/dev/null),@,$(error RPM not installed, please install it))\
+	echo "Currently installed dependencies:" && rpm -q --whatprovides $(DEPENDENCIES) || \
 		{ echo "ERROR: call 'make install-deps' to install missing dependencies"; exit 1; }
 check-depend.dpkg:
-	@test $$(dpkg -l $(DEPENDENCIES) | tail -n +5 | grep '^i' | wc -l) -eq $(words $(DEPENDENCIES)) || \
+	$(if $(shell dpkg --version 2>/dev/null),@,$(error dpkg not installed, please install it))\
+	test $$(dpkg -l $(DEPENDENCIES) | tail -n +5 | grep '^i' | wc -l) -eq $(words $(DEPENDENCIES)) || \
 		{ echo "ERROR: call 'make install-deps' to install missing dependencies"; exit 1; }
-check-depend: check.$(PKG_MANAGER) check-depend.$(PKG_MANAGER)
+check-depend: check-depend.$(PKG_MANAGER)
 
 prepare-chroot-dom0:
 ifneq ($(DIST_DOM0),)
